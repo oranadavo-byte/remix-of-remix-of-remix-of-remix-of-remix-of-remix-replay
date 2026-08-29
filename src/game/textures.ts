@@ -1305,6 +1305,159 @@ function buildHud(scene: Phaser.Scene) {
   });
 }
 
+/* ---------------- MENU / TREE ORNAMENT ASSETS ---------------- */
+
+/** Ornate hexagonal plate used behind menu icons and ember-tree nodes. */
+function plate(ctx: Ctx, cx: number, cy: number, r: number, ring: string, fill: string) {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i - Math.PI / 2;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = ring;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // inner hairline
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i - Math.PI / 2;
+    const x = cx + Math.cos(a) * (r - 5);
+    const y = cy + Math.sin(a) * (r - 5);
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = "rgba(255,216,155,0.22)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function buildMenuIcons(scene: Phaser.Scene) {
+  const S = 84;
+  const c = S / 2;
+
+  const make = (key: string, lit: boolean, art: (ctx: Ctx) => void) =>
+    single(scene, key, S, S, (ctx) => {
+      if (lit) glow(ctx, c, c, 34, "rgba(255,179,71,0.30)");
+      plate(ctx, c, c, 34, lit ? "#c9964a" : "#4a4232", lit ? "rgba(28,22,14,0.94)" : "rgba(12,14,20,0.9)");
+      art(ctx);
+    });
+
+
+
+  const stroke = (ctx: Ctx, lit: boolean) => {
+    ctx.strokeStyle = lit ? "#ffe9c4" : "#7e849a";
+    ctx.fillStyle = lit ? "#ffe9c4" : "#7e849a";
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+  };
+
+  for (const lit of [false, true]) {
+    const sfxKey = lit ? "_on" : "_off";
+
+    // descend: downward chevron over a lantern spark
+    make(`icon_descend${sfxKey}`, lit, (ctx) => {
+      stroke(ctx, lit);
+      ctx.beginPath();
+      ctx.moveTo(c - 13, c - 12);
+      ctx.lineTo(c, c + 2);
+      ctx.lineTo(c + 13, c - 12);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(c, c + 14, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // ember tree: trunk with three buds
+    make(`icon_tree${sfxKey}`, lit, (ctx) => {
+      stroke(ctx, lit);
+      ctx.beginPath();
+      ctx.moveTo(c, c + 16);
+      ctx.lineTo(c, c - 2);
+      ctx.moveTo(c, c + 2);
+      ctx.lineTo(c - 12, c - 10);
+      ctx.moveTo(c, c + 2);
+      ctx.lineTo(c + 12, c - 10);
+      ctx.stroke();
+      const buds: Array<[number, number]> = [
+        [c, c - 8],
+        [c - 14, c - 14],
+        [c + 14, c - 14],
+      ];
+      buds.forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+    });
+
+    // settings: gear
+    make(`icon_settings${sfxKey}`, lit, (ctx) => {
+      stroke(ctx, lit);
+      for (let i = 0; i < 8; i++) {
+        const a = (Math.PI / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(c + Math.cos(a) * 9, c + Math.sin(a) * 9);
+        ctx.lineTo(c + Math.cos(a) * 16, c + Math.sin(a) * 16);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(c, c, 9, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    // controls: gamepad-ish plate
+    make(`icon_controls${sfxKey}`, lit, (ctx) => {
+      stroke(ctx, lit);
+      ctx.beginPath();
+      ctx.roundRect(c - 17, c - 10, 34, 20, 8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(c - 11, c);
+      ctx.lineTo(c - 3, c);
+      ctx.moveTo(c - 7, c - 4);
+      ctx.lineTo(c - 7, c + 4);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(c + 8, c - 2, 2.4, 0, Math.PI * 2);
+      ctx.arc(c + 2, c + 4, 2.4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // abilities: open tome
+    make(`icon_abilities${sfxKey}`, lit, (ctx) => {
+      stroke(ctx, lit);
+      ctx.beginPath();
+      ctx.moveTo(c, c - 10);
+      ctx.lineTo(c, c + 12);
+      ctx.moveTo(c, c - 10);
+      ctx.quadraticCurveTo(c - 9, c - 15, c - 17, c - 11);
+      ctx.lineTo(c - 17, c + 9);
+      ctx.quadraticCurveTo(c - 9, c + 5, c, c + 12);
+      ctx.moveTo(c, c - 10);
+      ctx.quadraticCurveTo(c + 9, c - 15, c + 17, c - 11);
+      ctx.lineTo(c + 17, c + 9);
+      ctx.quadraticCurveTo(c + 9, c + 5, c, c + 12);
+      ctx.stroke();
+    });
+  }
+
+  // ember-tree node plates
+  single(scene, "node_plate", 96, 96, (ctx) => {
+    plate(ctx, 48, 48, 40, "#5d5340", "rgba(11,13,19,0.95)");
+  });
+  single(scene, "node_plate_lit", 96, 96, (ctx) => {
+    glow(ctx, 48, 48, 44, "rgba(255,179,71,0.28)");
+    plate(ctx, 48, 48, 40, "#e0a959", "rgba(30,23,14,0.95)");
+  });
+}
+
 export function buildAllTextures(scene: Phaser.Scene) {
   buildPlayer(scene);
   buildEnemies(scene);
@@ -1312,7 +1465,9 @@ export function buildAllTextures(scene: Phaser.Scene) {
   buildWorld(scene);
   buildItems(scene);
   buildHud(scene);
+  buildMenuIcons(scene);
 }
+
 
 
 export const ITEM_ANIMS = {
