@@ -1344,9 +1344,9 @@ function buildMenuIcons(scene: Phaser.Scene) {
     single(scene, key, S, S, (ctx) => {
       if (lit) glow(ctx, c, c, 34, "rgba(255,179,71,0.30)");
       plate(ctx, c, c, 34, lit ? "#c9964a" : "#4a4232", lit ? "rgba(28,22,14,0.94)" : "rgba(12,14,20,0.9)");
-      ctx.save();
-      ctx.strokeStyle = lit ? "#ffd89b" : "#9a9versusA";
-      ctx.restore();
+      art(ctx);
+    });
+
       art(ctx);
     });
 
