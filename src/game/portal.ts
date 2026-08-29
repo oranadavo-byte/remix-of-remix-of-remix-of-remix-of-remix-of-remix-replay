@@ -175,3 +175,38 @@ export function requestMidgameAd(): Promise<void> {
     }
   });
 }
+
+/** True when a rewarded ad could plausibly be shown (portal present). */
+export function canShowRewarded() {
+  return sdk !== null;
+}
+
+/**
+ * Show a rewarded ad. Resolves true only when the ad actually finished, so the
+ * caller can grant the reward (a revive). Resolves false on error/no portal.
+ */
+export function requestRewardedAd(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (!sdk) {
+      resolve(false);
+      return;
+    }
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      gameplayStart();
+      resolve(ok);
+    };
+    try {
+      gameplayStop();
+      sdk.ad.requestAd("rewarded", {
+        adFinished: () => finish(true),
+        adError: () => finish(false),
+      });
+      window.setTimeout(() => finish(false), 60_000);
+    } catch {
+      finish(false);
+    }
+  });
+}
