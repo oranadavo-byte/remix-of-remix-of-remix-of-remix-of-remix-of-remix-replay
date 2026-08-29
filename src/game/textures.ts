@@ -1347,8 +1347,7 @@ function buildMenuIcons(scene: Phaser.Scene) {
       art(ctx);
     });
 
-      art(ctx);
-    });
+
 
   const stroke = (ctx: Ctx, lit: boolean) => {
     ctx.strokeStyle = lit ? "#ffe9c4" : "#7e849a";
