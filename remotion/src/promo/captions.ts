@@ -42,13 +42,15 @@ const srtTime = (frames: number, fps: number) => {
   return `${h}:${m}:${s},${mmm}`;
 };
 
-export const toSrt = (beats: Beat[], fps = 30) =>
-  captionTrack(beats)
-    .map(
-      (cue, i) =>
-        `${i + 1}\n${srtTime(cue.from, fps)} --> ${srtTime(
-          cue.from + cue.durationInFrames,
-          fps,
-        )}\n${cue.text}\n`,
-    )
+export const toSrt = (beats: Beat[], fps = 30) => {
+  const cues = captionTrack(beats);
+  return cues
+    .map((cue, i) => {
+      const next = cues[i + 1];
+      const end = next
+        ? Math.min(cue.from + cue.durationInFrames, next.from)
+        : cue.from + cue.durationInFrames;
+      return `${i + 1}\n${srtTime(cue.from, fps)} --> ${srtTime(end, fps)}\n${cue.text}\n`;
+    })
     .join("\n");
+};
