@@ -407,14 +407,39 @@ export class GameScene extends Phaser.Scene {
   onPlayerDied() {
     this.deaths++;
     track("death", { room: Math.max(0, this.currentRoom), ms: this.time.now - this.startedAt });
+    const inBossFight = this.boss?.awake === true && this.boss.hp > 0;
     this.cameras.main.fadeOut(500);
     this.cameras.main.once("camerafadeoutcomplete", () => {
-      this.player.respawnAt(this.checkpoint.x, this.checkpoint.y);
-      this.events.emit("hp", this.player.hp, TUNE.playerMaxHp);
-      if (this.boss.awake && !this.bossReset()) return;
-      this.cameras.main.fadeIn(500);
+      // A boss death is the one moment a revive is worth an ad to the player.
+      if (inBossFight && canShowRewarded()) {
+        this.physics.pause();
+        this.game.events.emit("revive-offer");
+        this.game.events.once("revive-result", (revived: boolean) => {
+          this.physics.resume();
+          if (revived) {
+            this.player.respawnAt(ARENA.x1 + 120, GROUND_TOP - 80);
+            this.player.hp = this.player.maxHp;
+            this.events.emit("hp", this.player.hp, this.player.maxHp);
+            this.cameras.main.fadeIn(500);
+            return;
+          }
+          this.completeRespawn();
+        });
+        return;
+      }
+      void requestMidgameAd();
+      this.completeRespawn();
     });
   }
+
+  private completeRespawn() {
+    this.player.respawnAt(this.checkpoint.x, this.checkpoint.y);
+    this.events.emit("hp", this.player.hp, TUNE.playerMaxHp);
+    if (this.boss.awake && !this.bossReset()) return;
+    this.cameras.main.fadeIn(500);
+  }
+
+
 
   private bossReset() {
     if (this.boss.active && this.boss.hp > 0) {
