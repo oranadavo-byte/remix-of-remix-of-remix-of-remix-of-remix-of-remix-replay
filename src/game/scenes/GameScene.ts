@@ -7,6 +7,7 @@ import { Boss } from "../entities/Boss";
 import { sfx, startAmbience, unlockAudio, applyVolumes } from "../audio";
 import { Pickup, type PickupKind } from "../entities/Pickup";
 import { getSave, getSettings, writeSave } from "../save";
+import { track } from "../analytics";
 import { KILLS_PER_POINT } from "../skills";
 import {
   ARENA,
@@ -73,6 +74,7 @@ export class GameScene extends Phaser.Scene {
     this.kills = 0;
     this.deaths = 0;
     this.startedAt = this.time.now;
+    track("session_start");
     this.checkpoint = { ...START };
     applyVolumes();
     const save = getSave();
@@ -404,6 +406,7 @@ export class GameScene extends Phaser.Scene {
 
   onPlayerDied() {
     this.deaths++;
+    track("death", { room: Math.max(0, this.currentRoom), ms: this.time.now - this.startedAt });
     this.cameras.main.fadeOut(500);
     this.cameras.main.once("camerafadeoutcomplete", () => {
       this.player.respawnAt(this.checkpoint.x, this.checkpoint.y);
@@ -482,6 +485,7 @@ export class GameScene extends Phaser.Scene {
   private triggerBoss() {
     if (this.bossTriggered) return;
     this.bossTriggered = true;
+    track("boss_engage", { room: Math.max(0, this.currentRoom) });
     this.checkpoint = { x: ARENA.x1 + 60, y: 900 };
     this.boss.wake();
     this.game.events.emit("boss-show");
@@ -531,6 +535,7 @@ export class GameScene extends Phaser.Scene {
     });
     if (room !== this.currentRoom) {
       this.currentRoom = room;
+      track("room_enter", { room, ms: this.time.now - this.startedAt });
       this.roomLabel.setText(ROOM_LABELS[room]!.text).setAlpha(0);
       this.tweens.add({ targets: this.roomLabel, alpha: 1, duration: 500, yoyo: true, hold: 1400 });
     }
@@ -554,6 +559,8 @@ export class GameScene extends Phaser.Scene {
     this.ended = true;
     this.persist();
     writeSave({ bossDefeated: true });
+    track("boss_defeat", { ms: this.time.now - this.startedAt });
+    track("victory", { ms: this.time.now - this.startedAt, room: Math.max(0, this.currentRoom) });
     this.player.lockControl(true);
     this.cameras.main.fadeOut(1200);
     this.cameras.main.once("camerafadeoutcomplete", () => {

@@ -1,5 +1,6 @@
 import { TUNE } from "./config";
 import { getSave, writeSave } from "./save";
+import { track } from "./analytics";
 
 export interface SkillDef {
   id: string;
@@ -168,6 +169,7 @@ export function unlock(def: SkillDef) {
   const ranks = { ...(save.ranks ?? {}) };
   ranks[def.id] = (ranks[def.id] ?? 0) + 1;
   writeSave({ ranks, points: save.points - def.cost, spent: save.spent + def.cost });
+  track("skill_unlock", { skill: def.id, rank: ranks[def.id] ?? 1 });
   return true;
 }
 
