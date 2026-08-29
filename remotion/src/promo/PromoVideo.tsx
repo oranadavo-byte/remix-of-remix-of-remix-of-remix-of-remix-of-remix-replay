@@ -74,7 +74,10 @@ export const PROMO_FRAMES = totalFrames(FULL_BEATS);
 export const PROMO_15_FRAMES = totalFrames(SHORT_BEATS);
 export const PROMO_30_FRAMES = totalFrames(LONG_BEATS);
 
-export const PromoVideo: React.FC<{ beats?: Beat[] }> = ({ beats = FULL_BEATS }) => (
+export const PromoVideo: React.FC<{ beats?: Beat[]; captions?: boolean }> = ({
+  beats = FULL_BEATS,
+  captions = true,
+}) => (
   <AbsoluteFill style={{ background: "#04060d" }}>
     <TransitionSeries>
       {beats.flatMap((beat, i) => {
@@ -91,5 +94,6 @@ export const PromoVideo: React.FC<{ beats?: Beat[] }> = ({ beats = FULL_BEATS })
     </TransitionSeries>
     <Grain />
     <Vignette />
+    {captions ? <Captions beats={beats} /> : null}
   </AbsoluteFill>
 );
