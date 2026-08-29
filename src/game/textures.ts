@@ -1384,15 +1384,17 @@ function buildMenuIcons(scene: Phaser.Scene) {
       ctx.moveTo(c, c + 2);
       ctx.lineTo(c + 12, c - 10);
       ctx.stroke();
-      [
+      const buds: Array<[number, number]> = [
         [c, c - 8],
         [c - 14, c - 14],
         [c + 14, c - 14],
-      ].forEach(([x, y]) => {
+      ];
+      buds.forEach(([x, y]) => {
         ctx.beginPath();
         ctx.arc(x, y, 4, 0, Math.PI * 2);
         ctx.fill();
       });
+
     });
 
     // settings: gear
