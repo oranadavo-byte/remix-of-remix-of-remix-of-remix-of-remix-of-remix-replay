@@ -1164,13 +1164,156 @@ function buildItems(scene: Phaser.Scene) {
   });
 }
 
+/* ---------------- HUD / UI ORNAMENT ASSETS ---------------- */
+
+function lanternShell(ctx: Ctx, lit: boolean) {
+  const cx = 24;
+  const cy = 28;
+  if (lit) glow(ctx, cx, cy, 21, "rgba(255,179,71,0.5)");
+  // hanger ring
+  ctx.strokeStyle = lit ? "#8a6a3a" : "#3a3f4c";
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.arc(cx, 7, 4, Math.PI * 0.15, Math.PI * 0.85, true);
+  ctx.stroke();
+  // cap
+  ctx.fillStyle = lit ? "#5b4526" : "#2b2f3a";
+  ctx.beginPath();
+  ctx.moveTo(cx - 10, 15);
+  ctx.lineTo(cx + 10, 15);
+  ctx.lineTo(cx + 6, 11);
+  ctx.lineTo(cx - 6, 11);
+  ctx.closePath();
+  ctx.fill();
+  // glass body
+  ctx.beginPath();
+  ctx.moveTo(cx - 9, 16);
+  ctx.quadraticCurveTo(cx - 12, 28, cx - 7, 38);
+  ctx.lineTo(cx + 7, 38);
+  ctx.quadraticCurveTo(cx + 12, 28, cx + 9, 16);
+  ctx.closePath();
+  ctx.fillStyle = lit ? "rgba(255,196,110,0.30)" : "rgba(80,90,110,0.14)";
+  ctx.fill();
+  ctx.strokeStyle = lit ? "#c9964a" : "#39404f";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // base
+  ctx.fillStyle = lit ? "#5b4526" : "#2b2f3a";
+  ctx.beginPath();
+  ctx.roundRect(cx - 9, 37, 18, 5, 2);
+  ctx.fill();
+  if (lit) {
+    // flame core
+    glow(ctx, cx, cy + 1, 10, "rgba(255,225,160,0.95)", 0.85);
+    ctx.fillStyle = "#ffe9c4";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 3.2, 5.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function buildHud(scene: Phaser.Scene) {
+  single(scene, "hud_lantern_on", 48, 48, (ctx) => lanternShell(ctx, true));
+  single(scene, "hud_lantern_off", 48, 48, (ctx) => lanternShell(ctx, false));
+
+  // ember currency glyph
+  single(scene, "hud_ember", 28, 28, (ctx) => {
+    glow(ctx, 14, 14, 12, "rgba(255,179,71,0.6)");
+    ctx.fillStyle = PAL.amber;
+    ctx.beginPath();
+    ctx.arc(14, 14, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff3d8";
+    ctx.beginPath();
+    ctx.arc(12.6, 12.6, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // warden emblem portrait ring
+  single(scene, "hud_emblem", 60, 60, (ctx) => {
+    ctx.fillStyle = "rgba(12,14,20,0.92)";
+    ctx.beginPath();
+    ctx.arc(30, 30, 25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#8a6a3a";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // hooded silhouette
+    ctx.fillStyle = "#232833";
+    ctx.beginPath();
+    ctx.moveTo(30, 12);
+    ctx.quadraticCurveTo(45, 22, 43, 48);
+    ctx.lineTo(17, 48);
+    ctx.quadraticCurveTo(15, 22, 30, 12);
+    ctx.closePath();
+    ctx.fill();
+    glow(ctx, 30, 30, 9, "rgba(255,179,71,0.55)");
+    ctx.fillStyle = "#ffd89b";
+    ctx.beginPath();
+    ctx.ellipse(25.5, 29, 2.6, 2, -0.2, 0, Math.PI * 2);
+    ctx.ellipse(34.5, 29, 2.6, 2, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // ornate boss bar frame (root / stone)
+  single(scene, "boss_frame", 760, 64, (ctx) => {
+    const w = 760;
+    const midY = 34;
+    ctx.strokeStyle = "#2a2018";
+    ctx.lineCap = "round";
+    // gnarled roots along both sides
+    for (let s = -1; s <= 1; s += 2) {
+      for (let k = 0; k < 5; k++) {
+        ctx.beginPath();
+        ctx.lineWidth = 5 - k * 0.7;
+        const x0 = w / 2 + s * (90 + k * 14);
+        ctx.moveTo(x0, midY);
+        ctx.quadraticCurveTo(x0 + s * 90, midY - 18 - k * 4, x0 + s * (200 + k * 30), midY + (k % 2 ? 12 : -14));
+        ctx.stroke();
+      }
+    }
+    // stone rail
+    ctx.fillStyle = "#1a1d26";
+    ctx.beginPath();
+    ctx.roundRect(90, midY - 13, w - 180, 26, 7);
+    ctx.fill();
+    ctx.strokeStyle = "#6a5330";
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    // centre lantern emblem
+    glow(ctx, w / 2, midY, 16, "rgba(255,179,71,0.35)");
+  });
+
+  // boss bar end cap emblem
+  single(scene, "boss_emblem", 44, 56, (ctx) => {
+    glow(ctx, 22, 28, 18, "rgba(255,179,71,0.4)");
+    ctx.fillStyle = "#1a1d26";
+    ctx.beginPath();
+    ctx.moveTo(22, 4);
+    ctx.lineTo(38, 24);
+    ctx.lineTo(22, 52);
+    ctx.lineTo(6, 24);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#c9964a";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#ffd89b";
+    ctx.beginPath();
+    ctx.ellipse(22, 26, 4, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
 export function buildAllTextures(scene: Phaser.Scene) {
   buildPlayer(scene);
   buildEnemies(scene);
   buildBoss(scene);
   buildWorld(scene);
   buildItems(scene);
+  buildHud(scene);
 }
+
 
 export const ITEM_ANIMS = {
   life: { key: "pickup_life", frames: 4, rate: 8, repeat: -1 },
