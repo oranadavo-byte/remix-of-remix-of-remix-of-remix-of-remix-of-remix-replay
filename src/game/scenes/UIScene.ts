@@ -2,13 +2,18 @@ import * as Phaser from "phaser";
 import { GAME_W, TUNE } from "../config";
 import { getSave } from "../save";
 
+const DASH_SEGS = 5;
+
+/** Diegetic HUD: lantern health, ember count, dash meter and the guardian's root-bound bar. */
 export class UIScene extends Phaser.Scene {
-  private hearts: Phaser.GameObjects.Graphics[] = [];
-  private dashBar!: Phaser.GameObjects.Graphics;
-  private bossBarBg!: Phaser.GameObjects.Graphics;
-  private bossBar!: Phaser.GameObjects.Graphics;
+  private lanterns: Phaser.GameObjects.Image[] = [];
+  private dashSegs: Phaser.GameObjects.Graphics[] = [];
+  private bossFrame!: Phaser.GameObjects.Image;
+  private bossEmblem!: Phaser.GameObjects.Image;
+  private bossFill!: Phaser.GameObjects.Graphics;
   private bossLabel!: Phaser.GameObjects.Text;
   private bossPct = 1;
+  private bossShown = 1;
   private bossVisible = false;
   private toast!: Phaser.GameObjects.Text;
   private phase2 = false;
@@ -20,60 +25,80 @@ export class UIScene extends Phaser.Scene {
   private maxSoul = 99;
   private focus = 0;
   private maxHp = TUNE.playerMaxHp;
+  private hp = TUNE.playerMaxHp;
 
   constructor() {
     super({ key: "UI", active: false });
   }
 
   create() {
-    const game = this.scene.get("Game") as Phaser.Scene & { player: { dashCooldownPct: number } };
-
-    // HUD backdrop
-    this.add
-      .graphics()
-      .fillStyle(0x0c0e14, 0.55)
-      .fillRoundedRect(14, 12, 260, 110, 12)
-      .lineStyle(1, 0xffb347, 0.25)
-      .strokeRoundedRect(14, 12, 260, 110, 12);
+    const game = this.scene.get("Game");
 
     this.maxHp = Math.max(TUNE.playerMaxHp, getSave().maxHp);
+    this.hp = this.maxHp;
+
+    /* ---- top left: emblem + lantern health + embers ---- */
+    const emblem = this.add.image(44, 46, "hud_emblem").setScale(0.92);
+    this.tweens.add({
+      targets: emblem,
+      scale: { from: 0.9, to: 0.96 },
+      duration: 2400,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
     for (let i = 0; i < this.maxHp; i++) {
-      const g = this.add.graphics({ x: 32 + i * 34, y: 34 });
-      this.hearts.push(g);
+      const img = this.add.image(88 + i * 30, 42, "hud_lantern_on").setScale(0.72).setOrigin(0, 0.5);
+      this.lanterns.push(img);
     }
-    this.drawHearts(TUNE.playerMaxHp);
 
-    this.add
-      .text(32, 64, "LANTERN · DASH", { fontFamily: "monospace", fontSize: "11px", color: "#a89bc4" })
-      .setAlpha(0.9);
-    this.dashBar = this.add.graphics();
+    this.add.image(80, 82, "hud_ember").setScale(0.8);
+    this.emberText = this.add.text(96, 82, "0", {
+      fontFamily: "monospace",
+      fontSize: "15px",
+      color: "#ffd89b",
+    }).setOrigin(0, 0.5);
 
-    // soul vessel + focus ring
-    this.soulRing = this.add.graphics({ x: 232, y: 56 });
-    this.focusRing = this.add.graphics({ x: 232, y: 56 });
+    /* ---- soul vessel ---- */
+    this.soulRing = this.add.graphics({ x: 44, y: 108 });
+    this.focusRing = this.add.graphics({ x: 44, y: 108 });
     this.soulText = this.add
-      .text(232, 56, "0", { fontFamily: "monospace", fontSize: "13px", color: "#8fd8d2" })
+      .text(44, 108, "0", { fontFamily: "monospace", fontSize: "12px", color: "#8fd8d2" })
       .setOrigin(0.5);
-    this.emberText = this.add
-      .text(32, 100, "", { fontFamily: "monospace", fontSize: "11px", color: "#ffd89b" })
-      .setAlpha(0.9);
-    this.drawSoul();
 
-    this.bossBarBg = this.add.graphics().setVisible(false);
-    this.bossBar = this.add.graphics().setVisible(false);
+    /* ---- top right: dash meter ---- */
+    this.add
+      .text(GAME_W - 24, 30, "DASH", { fontFamily: "monospace", fontSize: "13px", color: "#8fd8d2" })
+      .setOrigin(1, 0.5)
+      .setAlpha(0.85);
+    for (let i = 0; i < DASH_SEGS; i++) {
+      this.dashSegs.push(this.add.graphics({ x: GAME_W - 24 - (DASH_SEGS - i) * 34, y: 50 }));
+    }
+
+    /* ---- centre top: boss bar ---- */
+    const bx = GAME_W / 2;
+    this.bossFrame = this.add.image(bx, 92, "boss_frame").setVisible(false);
+    this.bossFill = this.add.graphics().setVisible(false);
+    this.bossEmblem = this.add.image(bx - 300, 92, "boss_emblem").setScale(0.8).setVisible(false);
     this.bossLabel = this.add
-      .text(GAME_W / 2, 616, "THE ROOTBOUND GUARDIAN", {
+      .text(bx, 58, "THE ROOTBOUND GUARDIAN", {
         fontFamily: "monospace",
-        fontSize: "16px",
+        fontSize: "17px",
         color: "#e8e2d4",
+        stroke: "#0a0c12",
+        strokeThickness: 4,
       })
       .setOrigin(0.5)
       .setVisible(false);
 
     this.toast = this.add
-      .text(GAME_W / 2, 160, "", { fontFamily: "monospace", fontSize: "20px", color: "#ffd89b" })
+      .text(GAME_W / 2, 180, "", { fontFamily: "monospace", fontSize: "20px", color: "#ffd89b" })
       .setOrigin(0.5)
       .setAlpha(0);
+
+    this.drawHearts(this.maxHp);
+    this.drawSoul();
 
     game.events.on("hp", (hp: number) => this.drawHearts(hp));
     game.events.on("soul", (soul: number, max: number) => {
@@ -110,75 +135,114 @@ export class UIScene extends Phaser.Scene {
 
   private showBoss(v: boolean) {
     this.bossVisible = v;
+    const parts = [this.bossFrame, this.bossFill, this.bossEmblem, this.bossLabel];
     if (v) {
       this.bossPct = 1;
+      this.bossShown = 1;
       this.phase2 = false;
       this.bossLabel.setText("THE ROOTBOUND GUARDIAN");
+      parts.forEach((p) => p.setVisible(true).setAlpha(0));
+      this.tweens.add({ targets: parts, alpha: 1, duration: 600 });
+    } else {
+      this.tweens.add({
+        targets: parts,
+        alpha: 0,
+        duration: 500,
+        delay: 300,
+        onComplete: () => parts.forEach((p) => p.setVisible(false)),
+      });
     }
-    this.bossBarBg.setVisible(v);
-    this.bossBar.setVisible(v);
-    this.bossLabel.setVisible(v);
   }
 
   private drawSoul() {
     const pct = Phaser.Math.Clamp(this.soul / this.maxSoul, 0, 1);
     this.soulRing.clear();
-    this.soulRing.fillStyle(0x11141c, 0.9).fillCircle(0, 0, 22);
-    this.soulRing.lineStyle(3, 0x2c2f3d, 1).strokeCircle(0, 0, 22);
-    this.soulRing.fillStyle(0x6fb3ad, 0.9).fillRect(-18, 18 - 36 * pct, 36, 36 * pct);
-    this.soulRing.lineStyle(2, 0x8fd8d2, 0.8).strokeCircle(0, 0, 22);
+    this.soulRing.fillStyle(0x0c0e14, 0.9).fillCircle(0, 0, 18);
+    this.soulRing.lineStyle(2, 0x2c2f3d, 1).strokeCircle(0, 0, 18);
+    this.soulRing.fillStyle(0x6fb3ad, 0.85).fillRect(-15, 15 - 30 * pct, 30, 30 * pct);
+    this.soulRing.lineStyle(2, 0x8fd8d2, 0.75).strokeCircle(0, 0, 18);
     this.soulText.setText(String(Math.round(this.soul)));
 
     this.focusRing.clear();
     if (this.focus > 0) {
-      this.focusRing.lineStyle(4, 0xffd89b, 0.95);
+      this.focusRing.lineStyle(3, 0xffd89b, 0.95);
       this.focusRing.beginPath();
-      this.focusRing.arc(0, 0, 28, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.focus);
+      this.focusRing.arc(0, 0, 23, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.focus);
       this.focusRing.strokePath();
     }
-    this.emberText.setText(`EMBERS ${getSave().points}   ·   ESC  menu`);
+    this.emberText.setText(String(getSave().points));
   }
 
+  /** Lantern health: lit lanterns snuff out one by one, with a flicker and a rising mote. */
   private drawHearts(hp: number) {
-    this.hearts.forEach((g, i) => {
-      g.clear();
-      const filled = i < hp;
-      g.fillStyle(filled ? 0xffb347 : 0x2c2f3d, 1);
-      g.fillCircle(0, 0, 9);
-      g.lineStyle(2, filled ? 0xffd89b : 0x3a3f55, 1);
-      g.strokeCircle(0, 0, 12);
-      if (filled) {
-        g.fillStyle(0xffe9c4, 0.9);
-        g.fillCircle(-3, -3, 3);
+    const lost = hp < this.hp;
+    this.lanterns.forEach((img, i) => {
+      const lit = i < hp;
+      const wasLit = i < this.hp;
+      img.setTexture(lit ? "hud_lantern_on" : "hud_lantern_off");
+      if (wasLit && !lit) {
+        this.tweens.add({
+          targets: img,
+          scale: { from: 0.92, to: 0.72 },
+          duration: 240,
+          ease: "Quad.easeOut",
+        });
+        this.tweens.add({
+          targets: img,
+          x: img.x + 3,
+          duration: 55,
+          yoyo: true,
+          repeat: 2,
+        });
+        const mote = this.add
+          .image(img.x + 16, img.y - 4, "hud_ember")
+          .setScale(0.5)
+          .setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({
+          targets: mote,
+          y: mote.y - 26,
+          alpha: 0,
+          scale: 0.1,
+          duration: 700,
+          onComplete: () => mote.destroy(),
+        });
+      } else if (!wasLit && lit) {
+        this.tweens.add({ targets: img, scale: { from: 0.55, to: 0.72 }, duration: 300, ease: "Back.easeOut" });
       }
     });
+    if (lost) this.cameras.main.shake(90, 0.002);
+    this.hp = hp;
   }
 
-  override update() {
+  override update(_t: number, dt: number) {
     const game = this.scene.get("Game") as Phaser.Scene & { player?: { dashCooldownPct: number } };
     const pct = game?.player?.dashCooldownPct ?? 1;
-    this.dashBar.clear();
-    this.dashBar.fillStyle(0x22242c, 0.9);
-    this.dashBar.fillRoundedRect(32, 80, 120, 8, 4);
-    this.dashBar.fillStyle(pct >= 1 ? 0x6fb3ad : 0x3a3f55, 1);
-    this.dashBar.fillRoundedRect(32, 80, 120 * pct, 8, 4);
-    if (pct >= 1) {
-      this.dashBar.fillStyle(0x8fd8d2, 0.35);
-      this.dashBar.fillRoundedRect(30, 78, 124, 12, 6);
-    }
+
+    // segmented dash charge — fills left to right, glows when ready
+    this.dashSegs.forEach((g, i) => {
+      const segPct = Phaser.Math.Clamp(pct * DASH_SEGS - i, 0, 1);
+      g.clear();
+      g.fillStyle(0x11141c, 0.85).fillRoundedRect(0, 0, 28, 12, 4);
+      if (segPct > 0) {
+        g.fillStyle(pct >= 1 ? 0x8fd8d2 : 0x4a8f8a, 1);
+        g.fillRoundedRect(0, 0, 28 * segPct, 12, 4);
+      }
+      g.lineStyle(1, pct >= 1 ? 0x8fd8d2 : 0x2c2f3d, pct >= 1 ? 0.9 : 0.6).strokeRoundedRect(0, 0, 28, 12, 4);
+    });
 
     if (!this.bossVisible) return;
-    const w = 640;
-    const x = (GAME_W - w) / 2;
-    this.bossBarBg.clear();
-    this.bossBarBg.fillStyle(0x0c0e14, 0.85);
-    this.bossBarBg.fillRoundedRect(x - 4, 632, w + 8, 24, 6);
-    this.bossBar.clear();
-    this.bossBar.fillStyle(0x2c2f3d, 1);
-    this.bossBar.fillRect(x, 636, w, 16);
-    this.bossBar.fillStyle(this.phase2 ? 0xffd89b : 0xffb347, 1);
-    this.bossBar.fillRect(x, 636, w * Phaser.Math.Clamp(this.bossPct, 0, 1), 16);
-    this.bossBar.lineStyle(2, 0x565d67, 1);
-    this.bossBar.strokeRect(x, 636, w, 16);
+    // eased drain so chip damage reads clearly
+    this.bossShown = Phaser.Math.Linear(this.bossShown, Phaser.Math.Clamp(this.bossPct, 0, 1), Math.min(1, dt / 120));
+    const w = 560;
+    const x = GAME_W / 2 - w / 2;
+    const y = 84;
+    this.bossFill.clear();
+    this.bossFill.fillStyle(0x14100c, 1).fillRoundedRect(x, y, w, 16, 5);
+    const fw = w * this.bossShown;
+    if (fw > 2) {
+      this.bossFill.fillStyle(this.phase2 ? 0xd9543a : 0xffb347, 1).fillRoundedRect(x, y, fw, 16, 5);
+      this.bossFill.fillStyle(0xffe9c4, 0.35).fillRoundedRect(x, y + 2, fw, 5, 3);
+    }
+    this.bossFill.lineStyle(1, 0xc9964a, 0.7).strokeRoundedRect(x, y, w, 16, 5);
   }
 }
