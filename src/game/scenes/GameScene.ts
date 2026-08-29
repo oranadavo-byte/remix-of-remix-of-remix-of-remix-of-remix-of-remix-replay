@@ -9,8 +9,10 @@ import { Pickup, type PickupKind } from "../entities/Pickup";
 import { getSave, getSettings, writeSave } from "../save";
 import { track } from "../analytics";
 import { KILLS_PER_POINT } from "../skills";
+import { canShowRewarded, happytime, requestMidgameAd } from "../portal";
 import {
   ARENA,
+  GROUND_TOP,
   BOSS_POS,
   DEATH_Y,
   ENEMIES,
@@ -485,6 +487,7 @@ export class GameScene extends Phaser.Scene {
     this.gateWall = undefined;
     this.portalSprite.setAlpha(1);
     this.tweens.add({ targets: this.portalSprite, alpha: { from: 0.7, to: 1 }, duration: 900, yoyo: true, repeat: -1 });
+    happytime();
     sfx("victory");
   }
 
@@ -496,6 +499,7 @@ export class GameScene extends Phaser.Scene {
     this.player.hp = TUNE.playerMaxHp;
     this.events.emit("hp", this.player.hp, TUNE.playerMaxHp);
     this.game.events.emit("toast", "Shrine lit — checkpoint saved");
+    happytime();
     this.persist();
     sfx("checkpoint");
     const em = this.add.particles(SHRINE.x, SHRINE.y - 90, "amber_dot", {
