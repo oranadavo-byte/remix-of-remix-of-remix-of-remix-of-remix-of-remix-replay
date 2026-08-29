@@ -4,6 +4,7 @@ import { TransitionSeries, linearTiming, springTiming } from "@remotion/transiti
 import { fade } from "@remotion/transitions/fade";
 import { wipe } from "@remotion/transitions/wipe";
 import { Grain, Vignette } from "./kit";
+import { Captions } from "./Captions";
 import { Spark } from "./scenes/Spark";
 import { TitleCard } from "./scenes/TitleCard";
 import { Moves } from "./scenes/Moves";
